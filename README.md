@@ -1,177 +1,246 @@
-# Socket Firewall Service Mode Demo
+# Socket Firewall Demo
 
-A Docker-based demo of Socket Firewall running in service mode, intercepting and blocking malicious packages from npm and PyPI registries.
+See Socket Firewall block malicious packages in real-time. This demo runs entirely on your laptop using Docker.
 
-## Architecture
+## What This Does
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  node-client    │     │    firewall     │     │  npm/pypi       │
-│  (npm install)  │────▶│  (proxy:8080)   │────▶│  registries     │
-└─────────────────┘     └────────┬────────┘     └─────────────────┘
-                                 │
-┌─────────────────┐              │
-│  python-client  │              ▼
-│  (pip install)  │────▶   Socket API
-└─────────────────┘        (block/allow)
-```
+When developers install packages (like `npm install` or `pip install`), Socket Firewall intercepts the request, checks if the package is safe, and blocks known malware.
 
-## Quick Start
+**You'll see:**
+- Safe packages install normally
+- Malicious packages get blocked with a 403 error
 
-### 1. Generate CA Certificates
+---
 
-```bash
-mkdir -p certs && cd certs
+## Prerequisites
 
-openssl genrsa -out socketFirewallCa.key 2048
+You need **Docker Desktop** installed. If you don't have it:
 
-openssl req -x509 -new -nodes \
-  -key socketFirewallCa.key \
-  -sha256 -days 365 \
-  -out socketFirewallCa.crt \
-  -subj "/CN=Socket Security CA/O=Socket Security/C=US"
+1. Go to [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/)
+2. Download and install Docker Desktop for your computer
+3. Open Docker Desktop and wait for it to start (you'll see a green "Running" status)
 
-cd ..
-```
+---
 
-### 2. Configure API Key
+## Setup (5 minutes)
+
+### Step 1: Open Terminal
+
+- **Mac**: Press `Cmd + Space`, type "Terminal", press Enter
+- **Windows**: Press `Win + R`, type "cmd", press Enter
+
+### Step 2: Download This Project
+
+Copy and paste this command, then press Enter:
 
 ```bash
-echo "SOCKET_API_KEY=sktsec_YOUR_API_KEY_HERE" > .env.secrets
+git clone https://github.com/dc-larsen/socket-firewall-workshop.git
 ```
 
-Get your API key from [socket.dev/dashboard](https://socket.dev/dashboard). Required scopes: `packages`, `entitlements:list`.
+Then go into the folder:
 
-### 3. Start Containers
+```bash
+cd socket-firewall-workshop
+```
+
+### Step 3: Create Your Security Certificate
+
+This creates a certificate that lets the firewall inspect package downloads. Copy and paste these commands one at a time:
+
+```bash
+mkdir -p certs
+```
+
+```bash
+openssl genrsa -out certs/socketFirewallCa.key 2048
+```
+
+```bash
+openssl req -x509 -new -nodes -key certs/socketFirewallCa.key -sha256 -days 365 -out certs/socketFirewallCa.crt -subj "/CN=Socket Security CA/O=Socket Security/C=US"
+```
+
+### Step 4: Add Your Socket API Key
+
+Get your API key from [socket.dev/dashboard](https://socket.dev/dashboard), then run this command (replace `YOUR_KEY_HERE` with your actual key):
+
+```bash
+echo "SOCKET_API_KEY=YOUR_KEY_HERE" > .env.secrets
+```
+
+### Step 5: Start the Demo
 
 ```bash
 docker compose up -d
 ```
 
-### 4. Run Demo
+Wait about 30 seconds for everything to start. You'll see messages about containers being created.
+
+---
+
+## Run the Demo
+
+### Option A: Use the Demo Script
 
 ```bash
 ./demo.sh
 ```
 
-## Manual Testing
+This automatically tests both allowed and blocked packages.
 
-### Test Allowed Package
+### Option B: Test Manually
+
+**Install a safe package (will succeed):**
 
 ```bash
 docker exec sfw-node-client npm install lodash
-docker exec sfw-python-client pip install requests
 ```
 
-### Test Blocked Packages
+**Install a malicious package (will be blocked):**
 
 ```bash
-# npm - known malware
 docker exec sfw-node-client npm install form-data@2.3.3
-
-# pypi - vulnerable version
-docker exec sfw-python-client pip install urllib3==1.16
 ```
 
-### View Firewall Logs
+You should see: `403 Forbidden` - the firewall blocked it!
+
+**Watch the firewall logs:**
 
 ```bash
-docker logs -f socket-firewall
+docker logs socket-firewall
 ```
 
-## Example Blocked Packages
+Look for `packageAllowed` and `packageBlocked` in the output.
 
-| Package | Ecosystem | Reason |
-|---------|-----------|--------|
-| `form-data@2.3.3` | npm | Known malware |
-| `urllib3@1.16` | pypi | Critical vulnerabilities |
-| `event-stream@3.3.6` | npm | Malicious code injection |
-| `crossenv` | npm | Typosquat of cross-env |
-| `python3-dateutil` | pypi | Typosquat of python-dateutil |
+---
 
-## Files
+## Example Packages to Test
 
-```
-├── docker-compose.yml    # 3-container setup
-├── Dockerfile.sfw        # Socket Firewall image
-├── .env.secrets          # API key (not committed)
-├── certs/
-│   ├── socketFirewallCa.crt
-│   └── socketFirewallCa.key
-├── demo.sh               # Demo script
-└── k8s/                  # Kubernetes manifests (optional)
-```
+| Command | What Happens |
+|---------|--------------|
+| `docker exec sfw-node-client npm install lodash` | Allowed (safe) |
+| `docker exec sfw-node-client npm install form-data@2.3.3` | **Blocked** (malware) |
+| `docker exec sfw-python-client pip install requests` | Allowed (safe) |
+| `docker exec sfw-python-client pip install urllib3==1.16` | **Blocked** (vulnerable) |
 
-## Platform Support
+---
 
-The Dockerfile defaults to ARM64 (Apple Silicon). For Intel/AMD64:
+## Stop the Demo
 
-```dockerfile
-# In Dockerfile.sfw, change:
-ADD https://github.com/SocketDev/firewall-release/releases/download/v1.5.3/sfw-linux-arm64 ./sfw
-
-# To:
-ADD https://github.com/SocketDev/firewall-release/releases/download/v1.5.3/sfw-linux-x86_64 ./sfw
-```
-
-## Commands Reference
+When you're done:
 
 ```bash
-# Start
-docker compose up -d
-
-# Stop
 docker compose down
-
-# Rebuild after changes
-docker compose up -d --build
-
-# View logs
-docker logs -f socket-firewall
-
-# Shell into client
-docker exec -it sfw-node-client sh
-docker exec -it sfw-python-client bash
 ```
 
-## Configuration
+---
 
-### Environment Variables (Firewall)
+## Start It Again Later
 
-| Variable | Description |
-|----------|-------------|
-| `SOCKET_API_KEY` | Socket API key |
-| `SFW_HOSTNAME` | Proxy hostname |
-| `SFW_CA_CERT_PATH` | Path to CA certificate |
-| `SFW_CA_KEY_PATH` | Path to CA private key |
-| `SFW_HTTP_PORT` | HTTP proxy port (default: 8080) |
-| `SFW_HTTPS_PORT` | HTTPS proxy port (default: 8443) |
-| `SFW_DEBUG` | Enable debug logging |
+```bash
+cd socket-firewall-workshop
+docker compose up -d
+./demo.sh
+```
 
-### Client Configuration
-
-Clients route traffic through the firewall using:
-
-- `HTTPS_PROXY=http://firewall:8080`
-- `NODE_EXTRA_CA_CERTS=/certs/ca.crt` (Node.js)
-- `PIP_CERT=/certs/ca.crt` (Python)
+---
 
 ## Troubleshooting
 
-**Containers not starting?**
-```bash
-docker compose logs firewall
+**"command not found: docker"**
+- Make sure Docker Desktop is installed and running
+
+**"command not found: git"**
+- Mac: Run `xcode-select --install` and try again
+- Windows: Download Git from [git-scm.com](https://git-scm.com/)
+
+**Containers won't start**
+- Make sure Docker Desktop shows "Running" (green icon)
+- Try: `docker compose down` then `docker compose up -d`
+
+**Packages aren't being blocked**
+- Check your API key is correct in `.env.secrets`
+- Make sure your Socket org has blocking policies configured
+
+---
+
+## How It Works
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Your install   │     │    Firewall     │     │    Package      │
+│  command        │────▶│    (checks      │────▶│    Registry     │
+│                 │     │    with Socket) │     │                 │
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                                 │
+                                 ▼
+                           Socket API
+                         (allow/block)
 ```
 
-**SSL errors?**
-- Ensure CA cert is mounted correctly
-- Check `NODE_EXTRA_CA_CERTS` / `PIP_CERT` env vars
+The demo runs 3 containers:
+- **socket-firewall**: The proxy that checks packages
+- **sfw-node-client**: Simulates npm installs
+- **sfw-python-client**: Simulates pip installs
 
-**Packages not being blocked?**
-- Verify `SOCKET_API_KEY` is valid
-- Check org policy settings at socket.dev/dashboard
+---
+
+## Technical Reference
+
+<details>
+<summary>Click to expand advanced options</summary>
+
+### Platform Support
+
+The Dockerfile defaults to ARM64 (Apple Silicon Macs). For Intel Macs or Windows:
+
+Edit `Dockerfile.sfw` and change:
+```
+sfw-linux-arm64
+```
+to:
+```
+sfw-linux-x86_64
+```
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `SOCKET_API_KEY` | Your Socket API key |
+| `SFW_DEBUG` | Enable debug logging |
+
+### Files
+
+```
+├── docker-compose.yml    # Container configuration
+├── Dockerfile.sfw        # Firewall image
+├── .env.secrets          # Your API key (not shared)
+├── certs/                # Security certificates
+├── demo.sh               # Demo script
+└── k8s/                  # Kubernetes configs (optional)
+```
+
+### Useful Commands
+
+```bash
+# View live logs
+docker logs -f socket-firewall
+
+# Shell into node client
+docker exec -it sfw-node-client sh
+
+# Shell into python client
+docker exec -it sfw-python-client bash
+
+# Rebuild after changes
+docker compose up -d --build
+```
+
+</details>
+
+---
 
 ## Resources
 
-- [Socket Firewall Wiki](https://github.com/SocketDev/firewall-release/wiki)
+- [Socket Firewall Docs](https://github.com/SocketDev/firewall-release/wiki)
 - [Socket Dashboard](https://socket.dev/dashboard)
