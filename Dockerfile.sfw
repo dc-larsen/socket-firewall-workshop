@@ -1,0 +1,17 @@
+FROM debian:bullseye-slim
+
+RUN apt-get update \
+    && apt-get install -y netcat-openbsd curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+RUN mkdir -p /app/certs
+
+# M1/M2/M3 Macs (ARM64):
+ADD https://github.com/SocketDev/firewall-release/releases/download/v1.5.3/sfw-linux-arm64 ./sfw
+
+RUN chmod +x ./sfw && mv ./sfw /usr/local/bin/sfw
+
+EXPOSE 8080 8443
+
+ENTRYPOINT ["/usr/local/bin/sfw", "--service"]

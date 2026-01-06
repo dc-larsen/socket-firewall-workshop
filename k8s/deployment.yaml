@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: socket-firewall
+  namespace: socket-firewall
+  labels:
+    app: socket-firewall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: socket-firewall
+  template:
+    metadata:
+      labels:
+        app: socket-firewall
+    spec:
+      containers:
+      - name: socket-firewall
+        image: socket-firewall:latest
+        imagePullPolicy: Never  # Use local image from minikube
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        envFrom:
+        - configMapRef:
+            name: socket-firewall-config
+        - secretRef:
+            name: socket-firewall-secrets
+        volumeMounts:
+        - name: certs
+          mountPath: /app/certs
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          tcpSocket:
+            port: 8443
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 8443
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: certs
+        secret:
+          secretName: socket-firewall-certs

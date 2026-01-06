@@ -1,0 +1,72 @@
+name: socket-firewall-demo
+
+services:
+  node-client:
+    image: node:20-slim
+    container_name: sfw-node-client
+    depends_on:
+      firewall:
+        condition: service_healthy
+    environment:
+      - HTTPS_PROXY=http://firewall:8080
+      - HTTP_PROXY=http://firewall:8080
+      - NODE_EXTRA_CA_CERTS=/certs/ca.crt
+      - npm_config_registry=https://registry.npmjs.org/
+    volumes:
+      - ./certs/socketFirewallCa.crt:/certs/ca.crt:ro
+    working_dir: /app
+    command: sleep infinity
+    networks:
+      - sfw-network
+
+  python-client:
+    image: python:3.11-slim
+    container_name: sfw-python-client
+    depends_on:
+      firewall:
+        condition: service_healthy
+    environment:
+      - HTTPS_PROXY=http://firewall:8080
+      - HTTP_PROXY=http://firewall:8080
+      - REQUESTS_CA_BUNDLE=/certs/ca.crt
+      - SSL_CERT_FILE=/certs/ca.crt
+      - PIP_CERT=/certs/ca.crt
+    volumes:
+      - ./certs/socketFirewallCa.crt:/certs/ca.crt:ro
+    command: sleep infinity
+    networks:
+      - sfw-network
+
+  firewall:
+    build:
+      context: .
+      dockerfile: Dockerfile.sfw
+    container_name: socket-firewall
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    env_file:
+      - .env.secrets
+    environment:
+      - SFW_HOSTNAME=localhost
+      - SFW_CA_CERT_PATH=/app/certs/ca.crt
+      - SFW_CA_KEY_PATH=/app/certs/ca.key
+      - SFW_HTTP_PORT=8080
+      - SFW_HTTPS_PORT=8443
+      - SFW_DEBUG=true
+    volumes:
+      - ./certs/socketFirewallCa.crt:/app/certs/ca.crt:ro
+      - ./certs/socketFirewallCa.key:/app/certs/ca.key:ro
+    restart: unless-stopped
+    networks:
+      - sfw-network
+    healthcheck:
+      test: ["CMD", "nc", "-w", "1", "-z", "localhost", "8443"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  sfw-network:
+    driver: bridge
