@@ -93,12 +93,25 @@ docker logs -f socket-firewall
 
 ```
 ├── docker-compose.yml    # 3-container setup
-├── Dockerfile.sfw        # Socket Firewall image (ARM64)
+├── Dockerfile.sfw        # Socket Firewall image
 ├── .env.secrets          # API key (not committed)
 ├── certs/
 │   ├── socketFirewallCa.crt
 │   └── socketFirewallCa.key
-└── demo.sh               # Demo script
+├── demo.sh               # Demo script
+└── k8s/                  # Kubernetes manifests (optional)
+```
+
+## Platform Support
+
+The Dockerfile defaults to ARM64 (Apple Silicon). For Intel/AMD64:
+
+```dockerfile
+# In Dockerfile.sfw, change:
+ADD https://github.com/SocketDev/firewall-release/releases/download/v1.5.3/sfw-linux-arm64 ./sfw
+
+# To:
+ADD https://github.com/SocketDev/firewall-release/releases/download/v1.5.3/sfw-linux-x86_64 ./sfw
 ```
 
 ## Commands Reference
