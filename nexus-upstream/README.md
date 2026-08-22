@@ -9,7 +9,8 @@ Developer / CI  →  Nexus (proxy repo)  →  Socket Registry Firewall  →  npm
 ```
 
 All 13 checks in `test.sh` pass: safe packages install through Nexus, known
-malware (jscrambler@8.14.0) is blocked by the firewall (403, `x-socket-decision:
+malware (lodahs@0.0.1-security, the lodash typosquat whose artifact is npm's
+empty security stub — safe to test with) is blocked by the firewall (403, `x-socket-decision:
 blocked`, `x-socket-block-reason: Known malware`), and Nexus surfaces that
 block to developers as a 404 "Package not found".
 
@@ -82,7 +83,7 @@ Artifactory rig, 2026-08-18.)
 - Firewall answers the tarball fetch with **403** + `x-socket-decision:
   blocked` + `x-socket-block-reason: Known malware` (+ an `npm-notice` header).
 - Nexus converts that into a client-side **404**:
-  `{"success":false,"error":"Package 'jscrambler' not found"}`.
+  `{"success":false,"error":"Package 'lodahs' not found"}`.
 - Developers therefore see "not found", **not** a security error. Support
   runbooks should treat "version suddenly not found via Nexus" as a possible
   policy block: confirm in the firewall events / Socket dashboard.
