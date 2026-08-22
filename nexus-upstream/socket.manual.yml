@@ -1,34 +1,24 @@
-# Manual per-ecosystem routes — mirrors the Socket-hosted tenant shape
-# (chubb.firewall.socket.dev exposes /npm, /maven, /pypi the same way).
+# Socket Registry Firewall — Nexus Upstream topology
+# Aligned to the gold-standard reference config (path_routing mode; the
+# DNS-override `registries:` mode is deleted per the reference's own guidance).
 #
 # Nexus proxy repos set Remote storage URL to:
-#   http://firewall/npm    (npm format)
-#   http://firewall/maven  (maven2 format)
-#   http://firewall/pypi   (pypi format)
+#   https://firewall:8443/npm    (npm format)
+#   https://firewall:8443/maven  (maven2 format)
+#   https://firewall:8443/pypi   (pypi format)
 #
-# Listening on 80/443 directly: path_routing.override_port_http/https was
-# confirmed a no-op on image 2.1.1 (artifactory-upstream-repro, 2026-08-18),
-# so rewritten URLs always get implicit scheme-default ports. Using the real
-# ports sidesteps that instead of fighting it.
+# API token comes from SOCKET_SECURITY_API_TOKEN env (scopes: packages,
+# entitlements:list). ${VAR} placeholders are NOT interpolated in this file.
 
 socket:
   api_url: https://api.socket.dev
-  fail_open: false
-
-cache:
-  ttl: 10
-
-proxy:
-  buffer_size: 16k
-  buffers_count: 8
-  buffers_size: 16k
-  connect_timeout: 60
-  send_timeout: 60
-  read_timeout: 60
+  api_read_timeout: 60          # short-circuits slow API calls so workers don't hang
+  fail_open: false              # block installs when the Socket API is unreachable
+  fail_open_unscanned: true     # allow package versions Socket hasn't scanned yet
 
 ports:
-  http: 80
-  https: 443
+  http: 8080
+  https: 8443
 
 ssl:
   # fullchain.pem/privkey.pem names are load-bearing: the auto-discovery
@@ -40,25 +30,61 @@ ssl:
 path_routing:
   enabled: true
   domain: firewall
-  # MUST be https: rewrite_scheme is also the scheme used to CONNECT to the
-  # upstream, overriding the route's explicit https:// (verified: with http
-  # here, npmjs's Cloudflare edge answers 301 to every request). Nexus copes
-  # with the https rewrite in returned metadata because it re-resolves
-  # tarballs against its own remote URL path, not the metadata URLs.
-  rewrite_scheme: https
-
+  client_rewrite_scheme: https
   routes:
     - path: /npm
       upstream: https://registry.npmjs.org
       registry: npm
-    - path: /maven
-      upstream: https://repo1.maven.org/maven2
-      registry: maven
     - path: /pypi
       upstream: https://pypi.org
       registry: pypi
+    - path: /maven
+      upstream: https://repo1.maven.org/maven2
+      registry: maven
+    - path: /plugins-gradle
+      upstream: https://plugins.gradle.org/m2
+      registry: maven
+    - path: /nuget
+      upstream: https://api.nuget.org
+      registry: nuget
+    - path: /rubygems
+      upstream: https://rubygems.org
+      registry: rubygems
+    - path: /go
+      upstream: https://proxy.golang.org
+      registry: go
+    - path: /cargo
+      upstream: https://index.crates.io
+      registry: cargo
+    - path: /conda
+      upstream: https://repo.anaconda.com
+      registry: conda
+    - path: /openvsx
+      upstream: https://open-vsx.org
+      registry: openvsx
 
+# Shared decision cache — one instance here, but enabled to mirror the
+# reference config and exercise the code path.
+redis:
+  enabled: true
+  host: redis
+  port: 6379
+  ttl: 86400
+
+# Hide blocked versions from resolvers so installs fall back to an allowed
+# version instead of failing on a 403.
 metadata_filtering:
   enabled: true
-  filter_blocked: true
-  filter_warn: false
+  include_unchecked_versions: true
+  max_versions: 30              # per-package version cap; 30 performs well at scale
+  prefetch_max_concurrent: 4
+  prefetch_batch_concurrency: 8
+  package_filter_timeout: 60
+
+nginx:
+  worker_processes: auto
+  worker_connections: 32768
+  worker_rlimit_nofile: 65536   # must exceed worker_connections or nginx caps them
+  open_file_cache:
+    max: 2000
+    inactive: 120s

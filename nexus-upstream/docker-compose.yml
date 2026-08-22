@@ -30,9 +30,11 @@ services:
     # metadata filter. Download-layer 403 still enforces either way.
     image: socketdev/socket-registry-firewall:2.3.1
     container_name: nexus-rig-firewall
+    depends_on:
+      - redis
     ports:
-      - "9180:80"     # host-side probes; Nexus talks to firewall:80 internally
-      - "9543:443"
+      - "9180:8080"   # host-side probes; Nexus talks to firewall:8443 internally
+      - "9543:8443"
     env_file:
       - .env.secrets  # SOCKET_SECURITY_API_TOKEN (+ PRIVATE_REGISTRY_KEY for auto-discovery)
     environment:
@@ -41,6 +43,11 @@ services:
     volumes:
       - ./socket.yml:/app/socket.yml:ro
       - ./ssl:/etc/nginx/ssl:ro
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-rig-redis
     restart: unless-stopped
 
 volumes:
