@@ -1,0 +1,56 @@
+# Nexus auto-discovery in Upstream mode:
+#   the firewall polls Nexus's REST API (GET /service/rest/v1/repositories),
+#   generates one route per proxy repo at /repository/<repo-name>, and
+#   forwards to that repo's original remote registry.
+#
+# With this config the Nexus-side change becomes uniform for every repo:
+#   Remote storage URL = http://firewall/repository/<repo-name>
+# i.e. one hostname-swap formula, no per-ecosystem paths — new proxy repos
+# are picked up on the sync interval automatically.
+#
+# NOTE: the public README shows `config_mode: upstream` at top level, but the
+# config tool reads `path_routing.config_mode` (cli.py:75). It lives under
+# path_routing here for that reason.
+#
+# Credentials: PRIVATE_REGISTRY_KEY env var (set in .env.secrets by
+# switch-config.sh) — socket.yml does not expand ${VAR}.
+
+socket:
+  api_url: https://api.socket.dev
+  fail_open: false
+
+cache:
+  ttl: 10
+
+proxy:
+  buffer_size: 16k
+  buffers_count: 8
+  buffers_size: 16k
+  connect_timeout: 60
+  send_timeout: 60
+  read_timeout: 60
+
+ports:
+  http: 80
+  https: 443
+
+ssl:
+  cert: /etc/nginx/ssl/fullchain.pem
+  key: /etc/nginx/ssl/privkey.pem
+
+path_routing:
+  enabled: true
+  domain: firewall
+  rewrite_scheme: http
+  mode: nexus
+  config_mode: upstream
+
+  private_registry:
+    api_url: http://nexus:8081
+    interval: 1m
+    supported_ecosystems_only: true
+
+metadata_filtering:
+  enabled: true
+  filter_blocked: true
+  filter_warn: false

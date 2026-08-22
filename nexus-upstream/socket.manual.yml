@@ -1,0 +1,64 @@
+# Manual per-ecosystem routes — mirrors the Socket-hosted tenant shape
+# (chubb.firewall.socket.dev exposes /npm, /maven, /pypi the same way).
+#
+# Nexus proxy repos set Remote storage URL to:
+#   http://firewall/npm    (npm format)
+#   http://firewall/maven  (maven2 format)
+#   http://firewall/pypi   (pypi format)
+#
+# Listening on 80/443 directly: path_routing.override_port_http/https was
+# confirmed a no-op on image 2.1.1 (artifactory-upstream-repro, 2026-08-18),
+# so rewritten URLs always get implicit scheme-default ports. Using the real
+# ports sidesteps that instead of fighting it.
+
+socket:
+  api_url: https://api.socket.dev
+  fail_open: false
+
+cache:
+  ttl: 10
+
+proxy:
+  buffer_size: 16k
+  buffers_count: 8
+  buffers_size: 16k
+  connect_timeout: 60
+  send_timeout: 60
+  read_timeout: 60
+
+ports:
+  http: 80
+  https: 443
+
+ssl:
+  # fullchain.pem/privkey.pem names are load-bearing: the auto-discovery
+  # daemon regenerates config with these default names and bricks nginx if
+  # the real files are named anything else (verified on 2.1.1).
+  cert: /etc/nginx/ssl/fullchain.pem
+  key: /etc/nginx/ssl/privkey.pem
+
+path_routing:
+  enabled: true
+  domain: firewall
+  # MUST be https: rewrite_scheme is also the scheme used to CONNECT to the
+  # upstream, overriding the route's explicit https:// (verified: with http
+  # here, npmjs's Cloudflare edge answers 301 to every request). Nexus copes
+  # with the https rewrite in returned metadata because it re-resolves
+  # tarballs against its own remote URL path, not the metadata URLs.
+  rewrite_scheme: https
+
+  routes:
+    - path: /npm
+      upstream: https://registry.npmjs.org
+      registry: npm
+    - path: /maven
+      upstream: https://repo1.maven.org/maven2
+      registry: maven
+    - path: /pypi
+      upstream: https://pypi.org
+      registry: pypi
+
+metadata_filtering:
+  enabled: true
+  filter_blocked: true
+  filter_warn: false

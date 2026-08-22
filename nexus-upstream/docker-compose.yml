@@ -1,0 +1,47 @@
+# Nexus "Upstream" topology rig:
+#   client -> Nexus (proxy repos) -> Socket Registry Firewall -> public registries
+#
+# This mirrors the Chubb production shape: Nexus proxy repos point their
+# Remote storage URL at the firewall's per-ecosystem routes (/npm, /maven, /pypi).
+# Verified live against chubb.firewall.socket.dev on 2026-08-22:
+#   /npm/lodash -> 200, /maven/junit/... -> 200, /pypi/simple/requests/ -> 200
+#   bare /lodash (no ecosystem prefix) -> 404
+#
+# Nexus <-> firewall traffic is plain HTTP inside the compose network so the
+# JVM truststore dance for self-signed certs is unnecessary. Production uses
+# real TLS (Cloudflare in front of the hosted tenant).
+
+services:
+  nexus:
+    image: sonatype/nexus3:latest
+    container_name: nexus-rig-nexus
+    ports:
+      - "8081:8081"   # UI + REST API
+    environment:
+      - INSTALL4J_ADD_VM_PARAMS=-Xms1g -Xmx2g -XX:MaxDirectMemorySize=2g
+    volumes:
+      - nexus-data:/nexus-data
+    restart: unless-stopped
+
+  firewall:
+    # Pinned: local :latest is stale (2.1.1). 2.1.1 processes only one
+    # 100-version batch during npm metadata filtering, so blocked versions
+    # deep in a long version list (jscrambler has 220+) slip through the
+    # metadata filter. Download-layer 403 still enforces either way.
+    image: socketdev/socket-registry-firewall:2.3.1
+    container_name: nexus-rig-firewall
+    ports:
+      - "9180:80"     # host-side probes; Nexus talks to firewall:80 internally
+      - "9543:443"
+    env_file:
+      - .env.secrets  # SOCKET_SECURITY_API_TOKEN (+ PRIVATE_REGISTRY_KEY for auto-discovery)
+    environment:
+      # Surfaces auto-discovery per-repo skip reasons, which log at DEBUG only.
+      - SOCKET_LOG_LEVEL=debug
+    volumes:
+      - ./socket.yml:/app/socket.yml:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    restart: unless-stopped
+
+volumes:
+  nexus-data:

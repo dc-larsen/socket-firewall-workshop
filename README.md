@@ -240,6 +240,15 @@ docker compose up -d --build
 
 ---
 
+## Nexus Integration (Registry Firewall)
+
+The demo above uses the proxy-mode `sfw` binary. For the registry-mode
+firewall behind Sonatype Nexus (Nexus proxy repos pull through the firewall),
+see [`nexus-upstream/`](nexus-upstream/) — a full local rig with Nexus,
+per-ecosystem routes, malware-block tests, and auto-discovery notes.
+
+---
+
 ## Resources
 
 - [Socket Firewall Docs](https://github.com/SocketDev/firewall-release/wiki)

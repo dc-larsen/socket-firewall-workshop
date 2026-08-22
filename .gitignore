@@ -15,3 +15,5 @@ __pycache__/
 
 # Logs
 *.log
+nexus-upstream/ssl/
+nexus-upstream/socket.yml
