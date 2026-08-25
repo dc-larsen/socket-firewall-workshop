@@ -1,0 +1,8 @@
+# Overlay: blackhole the PyPI file CDN inside the firewall container only.
+# Simulates a corporate egress rule that allows pypi.org but not
+# files.pythonhosted.org (TEST-NET-3 address: packets go nowhere, connect
+# times out -- like a silent drop at a network boundary).
+services:
+  firewall:
+    extra_hosts:
+      - "files.pythonhosted.org:203.0.113.1"

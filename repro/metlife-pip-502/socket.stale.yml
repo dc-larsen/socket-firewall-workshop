@@ -1,0 +1,27 @@
+# Stale-pooled-connection experiment: /npm points at the close-on-reuse
+# middlebox (serves request #1 on a connection, closes on the reused #2).
+# worker_processes 1 makes pool reuse deterministic.
+socket:
+  api_url: https://api.socket.dev
+  fail_open: true
+  upstream_ssl_verify: false
+
+ports:
+  http: 8080
+  https: 443
+
+path_routing:
+  enabled: true
+  domain: ossfw.metlife.test
+  routes:
+    - path: /npm
+      upstream: https://middlebox:8899
+      registry: npm
+
+    - path: /pypi
+      upstream: https://pypi.org
+      registry: pypi
+
+nginx:
+  worker_processes: 1
+  worker_connections: 4096

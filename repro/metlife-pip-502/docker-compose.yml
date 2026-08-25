@@ -1,0 +1,74 @@
+name: metlife-repro
+
+services:
+  firewall:
+    image: socketdev/socket-registry-firewall:${FW_TAG:-2.3.2}
+    container_name: metlife-sfw
+    env_file:
+      - .env
+    volumes:
+      - ./${SOCKET_CONFIG:-socket.base.yml}:/app/socket.yml:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    ports:
+      - "21443:443"
+    dns:
+      - 172.31.99.53
+    depends_on:
+      - dns
+    networks:
+      default:
+        aliases:
+          - ossfw.metlife.test
+    healthcheck:
+      test: ["CMD", "curl", "-fk", "https://localhost:443/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  middlebox:
+    build:
+      context: /Users/davidlarsen/Desktop/projects/socket-reference/socket-nginx-firewall/dev-test-env/stale-conn-middlebox
+    container_name: metlife-middlebox
+    networks:
+      default:
+        ipv4_address: 172.31.99.99
+
+  # DNS with query logging + selective blackholing. The firewall's Lua HTTP
+  # client resolves via the configured resolver (resolv.conf), not /etc/hosts,
+  # so egress experiments must happen at the DNS layer. Docker-internal names
+  # (middlebox) are answered locally via addn-hosts.
+  dns:
+    image: alpine:3.20
+    container_name: metlife-dns
+    volumes:
+      - ./dns-hosts:/etc/dns-hosts:ro
+    command: sh -c "apk add --no-cache dnsmasq >/dev/null && exec dnsmasq -k --log-queries --log-facility=- --no-resolv --server=1.1.1.1 --addn-hosts=/etc/dns-hosts/hosts $${EXTRA_DNSMASQ_ARGS}"
+    environment:
+      - EXTRA_DNSMASQ_ARGS=${EXTRA_DNSMASQ_ARGS:-}
+    networks:
+      default:
+        ipv4_address: 172.31.99.53
+
+  client:
+    image: python:3.13-slim
+    container_name: metlife-client
+    depends_on:
+      firewall:
+        condition: service_healthy
+    volumes:
+      - ./ssl/fullchain.pem:/certs/sfw.crt:ro
+      - ./ca/ca.crt:/certs/ca.crt:ro
+      - ./work:/work
+    environment:
+      - SSL_CERT_FILE=/certs/ca.crt
+      - PIP_CERT=/certs/ca.crt
+      - PIP_INDEX_URL=https://ossfw.metlife.test/pypi/simple
+    working_dir: /work
+    command: sleep infinity
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.31.99.0/24
