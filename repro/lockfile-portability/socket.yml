@@ -1,0 +1,32 @@
+socket:
+  api_url: https://api.socket.dev
+  fail_open: true
+
+ports:
+  http: 8080
+  https: 443
+
+path_routing:
+  enabled: true
+  domain: sfw.mercor.test
+  routes:
+    - path: /npm
+      upstream: https://registry.npmjs.org
+      registry: npm
+      mode: proxy
+
+
+    - path: /pypi
+      upstream: https://pypi.org
+      registry: pypi
+      mode: proxy
+
+
+nginx:
+  worker_processes: 2
+  worker_connections: 4096
+
+metadata_filtering:
+  enabled: true
+  filter_blocked: true
+  filter_warn: false

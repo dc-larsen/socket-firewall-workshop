@@ -1,0 +1,61 @@
+name: mercor-repro
+
+services:
+  socket-firewall:
+    image: socketdev/socket-registry-firewall:latest
+    container_name: mercor-sfw
+    ports:
+      - "19080:8080"
+      - "19443:443"
+    env_file:
+      - .env
+    volumes:
+      - ./socket.yml:/app/socket.yml:ro
+      - ./ssl:/etc/nginx/ssl
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - sfw.mercor.test
+    healthcheck:
+      test: ["CMD", "curl", "-fk", "https://localhost:443/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # Developer laptop: can reach the firewall (stands in for the tailnet)
+  dev:
+    image: python:3.12-slim
+    container_name: mercor-dev
+    depends_on:
+      socket-firewall:
+        condition: service_healthy
+    volumes:
+      - ./work:/work
+      - ./ssl/fullchain.pem:/certs/sfw.crt:ro
+    environment:
+      - SSL_CERT_FILE=/certs/sfw.crt
+      - UV_CACHE_DIR=/work/.uvcache
+    working_dir: /work
+    command: sleep infinity
+    networks:
+      - default
+
+  # CI / Vercel: NOT on the tailnet. Cannot resolve the firewall hostname.
+  ci:
+    image: python:3.12-slim
+    container_name: mercor-ci
+    volumes:
+      - ./work:/work
+      - ./ssl/fullchain.pem:/certs/sfw.crt:ro
+    environment:
+      - UV_CACHE_DIR=/work/.uvcache-ci
+    working_dir: /work
+    command: sleep infinity
+    networks:
+      - offnet
+
+networks:
+  default:
+  offnet:
