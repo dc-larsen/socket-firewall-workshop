@@ -12,3 +12,4 @@ demo/**/.npmrc
 demo/app/package-lock.json
 *.log
 .DS_Store
+.npm-cache/

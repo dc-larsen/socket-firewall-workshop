@@ -1,8 +1,11 @@
 # Socket Firewall Demo
 
-A one-container local demo of Socket Registry Firewall. The demo command is a bare
-`npm install`. No `docker exec`, no `--registry` flag, no proxy environment variables,
-no certificate for the audience to look at.
+A one-container local demo of Socket Registry Firewall. The demo command is a plain
+`npm install <pkg>@<version>` from a demo directory. No `docker exec`, no `--registry`
+flag, no proxy environment variables, no certificate for the audience to look at.
+
+Every version is pinned and every command is printed for you by `scripts/up.sh`. Both
+of those are load-bearing; see [Pin every version](#pin-every-version-this-is-not-optional).
 
 ## What changed from the old workshop
 
@@ -27,8 +30,13 @@ cp .env.example .env     # add your token
 ./scripts/up.sh
 ```
 
-`up.sh` starts the firewall, exports the OrbStack CA, writes the `.npmrc` into each
-demo directory, and waits until the firewall serves real package metadata.
+`up.sh` does everything needed so a fresh terminal tab runs the demo with no setup:
+validates the token and prints which org it resolves to, exports the OrbStack CA,
+starts the firewall, writes the `.npmrc` into each demo directory, resets
+`demo/app/package.json`, clears the demo-local npm cache, waits until the firewall
+serves real package metadata, then prints the exact commands to run.
+
+It finishes by printing the command block. Copy the `cd` lines with it.
 
 Before a call:
 
@@ -38,15 +46,64 @@ Before a call:
 
 ## The beats
 
-Run from `demo/app` unless noted.
+`up.sh` and `preflight.sh` both print this list with absolute paths. The list itself
+lives in one place, `DEMO_BEATS` in `scripts/_common.sh`, and both the tarball path
+preflight probes and the command printed for you are derived from it, so what gets
+verified is always what you type.
+
+From `demo/app`:
 
 | # | Command | Result |
 |---|---|---|
-| 1 | `npm install lodash` | `added 1 package in 1s` |
-| 2 | `npm install aegularjs` | 403, `Known malware` plus the exfiltration note |
-| 3 | `npm install form-data@2.3.3` | 403, `Critical CVE` |
-| 4 | `npm ci` in `demo/payments-service` | 403 naming the malicious transitive dependency |
-| 5 | `./scripts/filtering.sh on` | optional: blocks go silent, builds stay green |
+| 1 | `npm install lodash@4.18.1` | `added 1 package`, the allow control |
+| 2 | `npm install aegularjs@1.1.2` | 403, `Known malware` plus the exfiltration note |
+| 3 | `npm install get-power@1.0.3` | 403, `Known malware` |
+| 4 | `npm install form-data@2.3.3` | 403, `Critical CVE` (needs `criticalCVE` at `error`) |
+
+From `demo/payments-service`:
+
+| # | Command | Result |
+|---|---|---|
+| 5 | `npm ci` | 403 naming the malicious transitive dependency |
+| 6 | `./scripts/filtering.sh on` | optional: blocks go silent, builds stay green |
+
+### Pin every version. This is not optional.
+
+A block beat is version-specific, and the `latest` version of a malware package is
+usually clean. Verified live on `2.6.1`:
+
+| Request | Firewall |
+|---|---|
+| `aegularjs@1.1.2` | **403** with the full threat-research note |
+| `aegularjs@8.7.6` (dist-tag `latest`) | **200, installs** |
+
+So a bare `npm install aegularjs` resolves to `latest`, succeeds, and the demo shows
+nothing. `8.7.6` carries `gptSecurity`, `installScripts` and `emptyPackage` but no
+confirmed `malware` alert, so there is nothing for a `malware: error` policy to catch.
+Never put a bare package name in a demo command.
+
+### Run them from the demo directories
+
+The `.npmrc` that points npm at the firewall is per-directory. The same command run
+from `$HOME` goes straight to `registry.npmjs.org`, inspects nothing, and looks exactly
+like the firewall letting malware through. `preflight.sh` checks both demo directories
+are wired, and the printed block always includes the `cd`.
+
+### Beats are per-org, not absolute
+
+Blocks are evaluated against the policy of the org that the token in `.env` belongs to,
+so swapping the token re-rolls the whole demo. `up.sh` and `preflight.sh` both print the
+resolved org for that reason. Only a rule at `error` blocks:
+
+| Rule at | Effect on a beat |
+|---|---|
+| `malware: error` | beats 2, 3 and 5 block |
+| `criticalCVE: warn` | **beat 4 returns 200.** No package swap fixes it |
+| `recentlyPublished: ignore` | a two-reason block drops to one reason |
+| `gptMalware: warn` | AI-detected malware does not block. Do not claim it does |
+
+When a block beat returns 200, `preflight.sh` reads the org's security policy and names
+the rule and its action, so you get the cause rather than a mystery.
 
 Beat 2 is the headline. `aegularjs` is a typosquat of `angularjs`, and the one-character
 difference does the teaching before you say anything:
@@ -60,7 +117,8 @@ attacker-controlled Discord webhook. ... Request ID: <id>
 
 That text is the `npm-notice` response header, which the npm CLI prints itself. For
 malware, the reason carries the threat-research note, so the developer gets the actual
-finding rather than a category.
+finding rather than a category. `preflight.sh` warns when a reason has decayed to a bare
+category with no note, because that is a weaker demo even though the status code is right.
 
 ## Block messages and metadata filtering
 
@@ -73,7 +131,7 @@ sees, and not in the direction you want for a demo:
 | on | `npm error notarget No matching version found` | Nothing. No Socket branding at all |
 | on, unpinned `^2.3.3` | `added 22 packages in 3s`, silently resolved to `2.5.6` | Nothing. The build is green |
 
-All three verified on `2.6.1`. Metadata filtering removes blocked versions from the
+All three verified on `2.6.1`, on an org with `criticalCVE` at `error`. Metadata filtering removes blocked versions from the
 version list, so the client never requests them and there is no 403 to carry a message.
 The download gate is what produces the reason.
 
@@ -99,9 +157,10 @@ To swap one, find a confirmed-malware package still live on npm:
 ./scripts/find-packages.sh
 ```
 
-Then update the `BEATS` list in `scripts/preflight.sh` and the README table.
+Then update `DEMO_BEATS` in `scripts/_common.sh` and the README table. That array is the
+only place a beat is defined; preflight and the printed commands both read it.
 
-Beat 4 does not have this problem. `npm ci` requests the tarball URL directly and the
+Beat 5 does not have this problem. `npm ci` requests the tarball URL directly and the
 firewall decides before it contacts npm, so it works even though the version is gone.
 
 ## Talk track
@@ -152,7 +211,7 @@ feed. Six minutes is trivia. Five hours is the gap they are living in.
 Compromised versions are `1.14.1` and `0.30.4`. `1.14.0` is clean and still on npm.
 Socket's own internal timeline doc had this wrong, so do not repeat it.
 
-Then run beat 4 and let the terminal say it:
+Then run beat 5 (`npm ci` in `demo/payments-service`) and let the terminal say it:
 
 ```
 Reason: Known malware -- Has malicious plain-crypto-js@4.2.1 dependency.
@@ -212,8 +271,8 @@ Ready, not volunteered:
 
 | Script | Does |
 |---|---|
-| `up.sh` | Start, export CA, write `.npmrc`, wait for real readiness |
-| `preflight.sh` | Verify every beat against the live API |
+| `up.sh` | Start, export CA, write `.npmrc`, reset manifest, clear demo cache, wait for real readiness, print the commands |
+| `preflight.sh` | Verify every beat against the live API, diagnose failures against org policy, print the commands |
 | `talk.sh` | Print the talk track |
 | `filtering.sh on\|off` | Toggle metadata filtering and recreate the container |
 | `find-packages.sh` | Find confirmed malware still live on npm, to swap a beat |
@@ -232,5 +291,11 @@ Ready, not volunteered:
   `wait_ready` does.
 - `socket.yml` is a bind mount resolved when the container is created, so a restart does
   not pick up an edit. Recreate the container.
-- npm caches packuments. After changing the rewrite scheme or the registry URL, run
-  `npm cache clean --force` or you will debug a stale URL.
+- npm caches packuments. The demo `.npmrc` sets `prefer-online=true` and a demo-local
+  `cache=` directory that `up.sh` wipes on every start, so beats provably traverse the
+  firewall without touching the operator's real `~/.npm`. If you change the registry URL
+  or rewrite scheme outside the demo dirs, `npm cache clean --force`.
+- Every demo command is pinned and every beat is defined once, in `DEMO_BEATS` in
+  `scripts/_common.sh`. Do not hand-write a command into this README or into `up.sh`;
+  derive it, or the printed command and the verified path will drift apart. They did
+  once, and the result was a demo command that could not block.
