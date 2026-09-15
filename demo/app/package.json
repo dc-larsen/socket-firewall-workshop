@@ -2,5 +2,5 @@
   "name": "checkout-api",
   "version": "1.0.0",
   "private": true,
-  "description": "Demo project. Run npm install here; .npmrc points npm at the firewall."
+  "description": "Demo project. The .npmrc here points npm at the firewall."
 }
