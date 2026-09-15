@@ -60,3 +60,17 @@ probe_notice() {
   curl_fw -m 40 -o /dev/null -D - "${BASE}/npm/$1" 2>/dev/null \
     | tr -d '\r' | awk 'tolower($1)=="npm-notice:"{sub(/^[^:]*: /,""); print}'
 }
+
+# demo/app must start with no declared dependencies so `npm install lodash` is
+# genuinely one package. npm rewrites this file on every install, so it is
+# regenerated rather than trusted.
+reset_app_manifest() {
+  cat > "${ROOT}/demo/app/package.json" <<'JSON'
+{
+  "name": "checkout-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo project. Run npm install here; .npmrc points npm at the firewall."
+}
+JSON
+}

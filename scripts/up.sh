@@ -28,7 +28,12 @@ ok "firewall container started ($(docker inspect -f '{{.Config.Image}}' packages
 
 for d in "${ROOT}/demo/app" "${ROOT}/demo/payments-service"; do write_npmrc "$d"; done
 rm -rf "${ROOT}/demo/app/node_modules" "${ROOT}/demo/payments-service/node_modules"
-ok "demo directories configured"
+rm -f "${ROOT}/demo/app/package-lock.json"
+# npm records whatever it installs into dependencies, so demo/app/package.json is
+# reset to pristine on every start. Otherwise `npm install lodash` reports 22
+# packages because a previous run left form-data declared.
+reset_app_manifest
+ok "demo directories configured (demo/app manifest reset)"
 
 printf '  %s… waiting for the firewall to serve real package metadata%s\n' "$c_dim" "$c_off"
 if wait_ready; then
