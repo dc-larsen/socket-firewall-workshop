@@ -1,4 +1,5 @@
 .env
+.env.secrets
 ca-orbstack.pem
 node_modules/
 demo/**/.npmrc
