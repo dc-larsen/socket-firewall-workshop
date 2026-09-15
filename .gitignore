@@ -1,17 +1,7 @@
-# Secrets
-.env.secrets
-*.key
-
-# Node
+.env
+ca-orbstack.pem
 node_modules/
-
-# Python
-__pycache__/
-*.pyc
-.venv/
-
-# OS
-.DS_Store
-
-# Logs
+demo/**/.npmrc
+demo/app/package-lock.json
 *.log
+.DS_Store

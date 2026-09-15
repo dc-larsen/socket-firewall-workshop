@@ -1,0 +1,38 @@
+# Socket Registry Firewall - local demo config
+#
+# Registry mode: developers point npm/pip at this firewall instead of the public
+# registry. No proxy env vars, no MITM CA, no client-side setup beyond a registry URL.
+#
+# metadata_filtering is deliberately OFF. With it ON, a blocked version is removed
+# from the version list and the developer sees NO Socket message at all (an exact pin
+# 404s as "no matching version", an unpinned range silently resolves to an older
+# version). OFF routes every block through the download gate, which returns a 403
+# carrying the full reason -- including the threat-research note for malware.
+# Run `scripts/filtering.sh on` to demo the tradeoff.
+
+socket:
+  api_url: https://api.socket.dev
+
+ports:
+  http: 8080
+  https: 8443
+
+path_routing:
+  enabled: true
+  # Single hostname. Multiple whitespace-separated names here produce invalid
+  # tarball URLs (npm ERR_INVALID_URL); extra names belong in allowed_domain.
+  domain: packages.orb.local
+  routes:
+    - path: /npm
+      upstream: https://registry.npmjs.org
+      registry: npm
+    - path: /pypi
+      upstream: https://pypi.org
+      registry: pypi
+
+metadata_filtering:
+  enabled: false
+
+nginx:
+  worker_processes: 2
+  worker_connections: 1024
