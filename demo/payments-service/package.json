@@ -1,0 +1,9 @@
+{
+  "name": "payments-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo project pinned to the axios version compromised in March 2026.",
+  "dependencies": {
+    "axios": "1.14.1"
+  }
+}
