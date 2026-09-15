@@ -1,5 +1,11 @@
 .env
 .env.secrets
+
+# Private keys. The proxy-mode demo generated a CA here; the registry-mode
+# rig needs no certs, but keep the guard so a stray key can never be committed.
+*.key
+*.pem
+certs/
 ca-orbstack.pem
 node_modules/
 demo/**/.npmrc
