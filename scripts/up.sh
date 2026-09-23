@@ -41,6 +41,7 @@ rm -rf "$NPM_CACHE"
 # reset to pristine on every start. Otherwise the allow beat reports 22 packages
 # because a previous run left form-data declared.
 reset_app_manifest
+rm -f "$PREFLIGHT_SKIP_FILE"
 ok "demo dirs wired to the firewall, manifest reset, demo npm cache cleared"
 
 printf '  %s… waiting for the firewall to serve real package metadata%s\n' "$c_dim" "$c_off"
@@ -53,4 +54,5 @@ fi
 print_commands
 
 printf '\n  %sscripts/preflight.sh   verify every beat against the live API\n' "$c_dim"
-printf '  scripts/talk.sh        print the talk track%s\n\n' "$c_off"
+printf '  scripts/talk.sh        print the talk track\n'
+printf '  scripts/notes.sh       open the side-screen notes in Obsidian%s\n\n' "$c_off"

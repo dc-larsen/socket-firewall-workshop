@@ -180,3 +180,84 @@ print_commands() {
   printf '\n  %severy version is pinned on purpose: `latest` of a malware package is\n' "$c_dim"
   printf '  usually clean, so a bare `npm install <pkg>` succeeds and shows nothing%s\n' "$c_off"
 }
+
+# ---------------------------------------------------------------------------
+# Side-screen notes
+# ---------------------------------------------------------------------------
+# notes/firewall.md is what the operator keeps beside the shared window. Its
+# command block sits between BEATS markers and is regenerated from DEMO_BEATS,
+# so the notes can never show a command preflight did not verify. Everything
+# outside the markers is hand-written and survives re-rendering.
+NOTES="${ROOT}/notes/firewall.md"
+# preflight records the beats that failed here, so reopening the notes later
+# still marks them DO NOT RUN. up.sh clears it: a fresh start is unverified.
+PREFLIGHT_SKIP_FILE="${ROOT}/.preflight-skip"
+
+# $1 (optional): space-separated pkg:ver keys that failed verification.
+# Defaults to whatever the last preflight recorded.
+render_notes() {
+  local skip="${1-$(cat "$PREFLIGHT_SKIP_FILE" 2>/dev/null)}"
+  [ -f "$NOTES" ] || return 0
+  local root_disp="$ROOT" block="" pkg ver code dir mode rule label cmd verdict
+  # Render ~ rather than the absolute home path so the tracked file does not
+  # churn between machines that share the same layout.
+  case "$ROOT" in "$HOME"/*) root_disp="~${ROOT#"$HOME"}" ;; esac
+  for d in app payments-service; do
+    block+=$'```\n'"cd ${root_disp}/demo/${d}"$'\n'
+    for row in "${DEMO_BEATS[@]}"; do
+      IFS='|' read -r pkg ver code dir mode rule label <<<"$row"
+      [ "$dir" = "$d" ] || continue
+      cmd="$(beat_cmd "$pkg" "$ver" "$mode")"
+      if [ "$code" = "200" ]; then verdict="allowed"; else verdict="BLOCKED"; fi
+      case " $skip " in
+        # Commented out so pasting the block can never run a dead beat.
+        *" ${pkg}:${ver} "*) block+="$(printf '# %-30s # DO NOT RUN - failed preflight' "$cmd")"$'\n' ;;
+        *) block+="$(printf '%-32s # %s - %s' "$cmd" "$verdict" "$label")"$'\n' ;;
+      esac
+    done
+    block+=$'```\n\n'
+  done
+  NOTES_BLOCK="$block" python3 - "$NOTES" <<'PY'
+import os, re, sys
+path = sys.argv[1]
+text = open(path).read()
+block = os.environ["NOTES_BLOCK"].rstrip("\n")
+new = re.sub(r"(<!-- BEATS:START[^>]*-->\n).*?(<!-- BEATS:END -->)",
+             lambda m: m.group(1) + block + "\n" + m.group(2), text, count=1, flags=re.S)
+if new != text:            # write only on change, so a clean tree stays clean
+    open(path, "w").write(new)
+PY
+}
+
+# Open the notes in Obsidian. A file inside a registered vault opens through the
+# obsidian:// URI, which lands it in that vault's window. Anything else goes to
+# the Obsidian app directly, with a one-line hint to make the notes folder a vault.
+open_notes() {
+  [ -f "$NOTES" ] || { warn "no notes file at notes/firewall.md"; return 0; }
+  local vault_uri
+  vault_uri="$(python3 - "$NOTES" <<'PY'
+import json, os, sys, urllib.parse
+f = os.path.realpath(sys.argv[1])
+cfg = os.path.expanduser("~/Library/Application Support/obsidian/obsidian.json")
+try:
+    vaults = json.load(open(cfg)).get("vaults", {}).values()
+except Exception:
+    vaults = []
+for v in vaults:
+    p = os.path.realpath(v.get("path", ""))
+    if p and f.startswith(p + os.sep):
+        print("obsidian://open?path=" + urllib.parse.quote(f, safe=""))
+        break
+PY
+)"
+  if [ -n "$vault_uri" ]; then
+    open "$vault_uri" && ok "notes opened in Obsidian"
+  elif [ -d /Applications/Obsidian.app ]; then
+    open -a Obsidian "$NOTES" && ok "notes opened in Obsidian"
+    printf '  %sfor a clean window, open %s/notes as a vault in Obsidian once%s\n' \
+      "$c_dim" "$ROOT" "$c_off"
+  else
+    open "$NOTES" && ok "notes opened"
+  fi
+  printf '  %sshare a WINDOW, never the entire screen - the notes are on it%s\n' "$c_yel" "$c_off"
+}

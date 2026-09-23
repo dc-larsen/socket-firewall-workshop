@@ -118,4 +118,6 @@ else
 fi
 
 print_commands "$skip"
+printf '%s\n' "$skip" > "$PREFLIGHT_SKIP_FILE"
+render_notes "$skip"
 [ "$fails" -eq 0 ]

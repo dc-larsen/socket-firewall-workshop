@@ -274,6 +274,7 @@ Ready, not volunteered:
 | `up.sh` | Start, export CA, write `.npmrc`, reset manifest, clear demo cache, wait for real readiness, print the commands |
 | `preflight.sh` | Verify every beat against the live API, diagnose failures against org policy, print the commands |
 | `talk.sh` | Print the talk track |
+| `notes.sh` | Open the side-screen notes (`notes/firewall.md`) in Obsidian, command block regenerated from `DEMO_BEATS` |
 | `filtering.sh on\|off` | Toggle metadata filtering and recreate the container |
 | `find-packages.sh` | Find confirmed malware still live on npm, to swap a beat |
 | `status.sh` | Container, filtering state, readiness |
