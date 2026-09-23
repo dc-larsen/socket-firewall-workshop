@@ -253,9 +253,29 @@ PY
   if [ -n "$vault_uri" ]; then
     open "$vault_uri" && ok "notes opened in Obsidian"
   elif [ -d /Applications/Obsidian.app ]; then
-    open -a Obsidian "$NOTES" && ok "notes opened in Obsidian"
-    printf '  %sfor a clean window, open %s/notes as a vault in Obsidian once%s\n' \
-      "$c_dim" "$ROOT" "$c_off"
+    # Obsidian silently ignores a file outside a vault (verified 2026-09-23:
+    # `open -a Obsidian file` focused the app and showed nothing). So register
+    # notes/ as a vault once. Obsidian rewrites obsidian.json on quit, so it has
+    # to be closed while we edit it; it autosaves, so quitting loses nothing.
+    osascript -e 'tell application "Obsidian" to quit' >/dev/null 2>&1
+    for _ in $(seq 1 15); do pgrep -x Obsidian >/dev/null || break; sleep 1; done
+    python3 - "${ROOT}/notes" <<'PY2'
+import json, os, secrets, sys, time
+cfg = os.path.expanduser("~/Library/Application Support/obsidian/obsidian.json")
+vault = os.path.realpath(sys.argv[1])
+try:
+    d = json.load(open(cfg))
+except Exception:
+    d = {}
+v = d.setdefault("vaults", {})
+if not any(os.path.realpath(x.get("path", "")) == vault for x in v.values()):
+    v[secrets.token_hex(8)] = {"path": vault, "ts": int(time.time() * 1000)}
+os.makedirs(os.path.dirname(cfg), exist_ok=True)
+json.dump(d, open(cfg, "w"))
+PY2
+    local enc
+    enc="$(python3 -c 'import sys,urllib.parse,os;print(urllib.parse.quote(os.path.realpath(sys.argv[1]),safe=""))' "$NOTES")"
+    open "obsidian://open?path=${enc}" && ok "registered notes/ as an Obsidian vault and opened the notes"
   else
     open "$NOTES" && ok "notes opened"
   fi
