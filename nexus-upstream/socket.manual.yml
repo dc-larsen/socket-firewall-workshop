@@ -17,8 +17,8 @@ socket:
   fail_open_unscanned: true     # allow package versions Socket hasn't scanned yet
 
 ports:
-  http: 8080
-  https: 8443
+  http: 80
+  https: 443
 
 ssl:
   # fullchain.pem/privkey.pem names are load-bearing: the auto-discovery

@@ -32,7 +32,7 @@ update_repo npm npm-proxy '{
   "name": "npm-proxy",
   "online": true,
   "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
-  "proxy": {"remoteUrl": "https://firewall:8443/npm", "contentMaxAge": 1440, "metadataMaxAge": 5},
+  "proxy": {"remoteUrl": "https://firewall/npm", "contentMaxAge": 1440, "metadataMaxAge": 5},
   "negativeCache": {"enabled": false, "timeToLive": 1440},
   "httpClient": {"blocked": false, "autoBlock": false, "connection": {"useTrustStore": true}}
 }'
@@ -41,7 +41,7 @@ update_repo maven maven-central-proxy '{
   "name": "maven-central-proxy",
   "online": true,
   "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
-  "proxy": {"remoteUrl": "https://firewall:8443/maven", "contentMaxAge": 1440, "metadataMaxAge": 5},
+  "proxy": {"remoteUrl": "https://firewall/maven", "contentMaxAge": 1440, "metadataMaxAge": 5},
   "negativeCache": {"enabled": false, "timeToLive": 1440},
   "httpClient": {"blocked": false, "autoBlock": false, "connection": {"useTrustStore": true}},
   "maven": {"versionPolicy": "RELEASE", "layoutPolicy": "PERMISSIVE", "contentDisposition": "INLINE"}
@@ -51,7 +51,7 @@ update_repo pypi pypi-proxy '{
   "name": "pypi-proxy",
   "online": true,
   "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
-  "proxy": {"remoteUrl": "https://firewall:8443/pypi", "contentMaxAge": 1440, "metadataMaxAge": 5},
+  "proxy": {"remoteUrl": "https://firewall/pypi", "contentMaxAge": 1440, "metadataMaxAge": 5},
   "negativeCache": {"enabled": false, "timeToLive": 1440},
   "httpClient": {"blocked": false, "autoBlock": false, "connection": {"useTrustStore": true}}
 }'

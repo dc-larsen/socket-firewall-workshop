@@ -33,8 +33,8 @@ services:
     depends_on:
       - redis
     ports:
-      - "9180:8080"   # host-side probes; Nexus talks to firewall:8443 internally
-      - "9543:8443"
+      - "9180:80"   # host-side probes; Nexus talks to firewall:443 internally
+      - "9543:443"
     env_file:
       - .env.secrets  # SOCKET_SECURITY_API_TOKEN (+ PRIVATE_REGISTRY_KEY for auto-discovery)
     environment:
