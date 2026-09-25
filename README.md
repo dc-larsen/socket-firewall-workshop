@@ -105,8 +105,10 @@ resolved org for that reason. Only a rule at `error` blocks:
 When a block beat returns 200, `preflight.sh` reads the org's security policy and names
 the rule and its action, so you get the cause rather than a mystery.
 
-Beat 2 is the headline. `aegularjs` is a typosquat of `angularjs`, and the one-character
-difference does the teaching before you say anything:
+Beat 2 is the headline: confirmed malware whose block reason names a behavior the
+audience can picture. Do not call it a typosquat. Socket carries no `didYouMean`
+alert on it, and the name it resembles (`angularjs`) is not the real AngularJS
+package, which is published as `angular`:
 
 ```
 npm notice Access denied: Your download has been blocked by the Socket Security Policy.

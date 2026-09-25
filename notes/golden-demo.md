@@ -58,7 +58,7 @@ Don't correct them. Name the section you'll show because of what they said.
 ```
 cd ~/Desktop/projects/socket-firewall-workshop/demo/app
 npm install lodash@4.18.1        # allowed - allow control, installs clean
-npm install aegularjs@1.1.2      # BLOCKED - typosquat of angularjs, confirmed malware
+npm install aegularjs@1.1.2      # BLOCKED - confirmed malware, exfiltrates host data to a Discord webhook
 npm install get-power@1.0.3      # BLOCKED - confirmed malware
 npm install form-data@2.3.3      # BLOCKED - critical CVE, not malware
 ```

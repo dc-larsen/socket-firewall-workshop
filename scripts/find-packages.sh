@@ -68,7 +68,8 @@ if not found:
 PY
 cat <<'TXT'
 
-  Prefer a name that teaches on sight (a typosquat of something famous) and a
-  description naming a concrete behavior (exfiltration, dropper, backdoor).
+  Prefer a description naming a concrete behavior (exfiltration, dropper,
+  backdoor). Only call a package a typosquat if Socket itself carries a
+  didYouMean alert on it; a lookalike name is not a verdict.
   Then update BEATS in scripts/preflight.sh and the table in README.md.
 TXT

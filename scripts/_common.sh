@@ -25,7 +25,7 @@ ORB_CA_NAME="OrbStack Development Root CA"
 # fields: pkg | version | expect | dir | mode | policy rule | label
 DEMO_BEATS=(
   "lodash|4.18.1|200|app|install|-|allow control, installs clean"
-  "aegularjs|1.1.2|403|app|install|malware|typosquat of angularjs, confirmed malware"
+  "aegularjs|1.1.2|403|app|install|malware|confirmed malware, exfiltrates host data to a Discord webhook"
   "get-power|1.0.3|403|app|install|malware|confirmed malware"
   "form-data|2.3.3|403|app|install|criticalCVE|critical CVE, not malware"
   "axios|1.14.1|403|payments-service|ci|malware|malicious transitive dependency"
