@@ -1,4 +1,4 @@
-# DEMO NOTES
+# GOLDEN DEMO NOTES
 
 > [!warning] Every section
 > **Slow down. Say it once.** Ask the question, then **stop talking** until they answer.
@@ -90,18 +90,35 @@ npm ci                           # BLOCKED - malicious transitive dependency
 ---
 
 ## 4. SCA (5 min)
-1. **Alerts page** (org-wide, skip individual scans): "Every repo, one list. Still a lot of CVEs."
-2. **Reachability:** precomputed comes with the install. Full application reachability runs in CI.
-3. **Show the drop on screen.** Say the count you see, not a percentage.
-4. **Open the fly-out** to show the proof that a CVE is reachable.
-5. **Remediation:** socket fix bumps versions. Mention Patches as a concept only.
+**Repo:** `checkout-service` (Java). **Story:** Log4Shell.
 
-> [!question] ASK
-> "How are you deciding which CVEs to fix today?"
+1. **Alerts page, org-wide:** "Every repo, one list." Skip individual scans.
+   - *Optional, 15 sec:* malware shows up here too (`n8n-nodes-sysdiag2` in internal-tools). "Same threat engine as the firewall."
+2. **Filter to checkout-service: 233 CVEs.** "This is what your engineers get handed today."
+3. **Precomputed reachability** comes with the install. It rules out **92**, but it can't judge the **58 direct dependencies**, because it can't see how your own code calls them.
+4. **Full application reachability** runs in your CI. **141 unreachable. 13 reachable.**
+5. **Log4Shell is in the 13.** Open the fly-out and show the call path from your code into log4j.
+6. **Fix:** the alert's own command, `socket fix`. Mention Patches as a concept only.
 
-> [!question] ASK
+> [!question] ASK (after the 233)
+> "How are you deciding which of these to fix today?"
+
+### LOG4SHELL
+- **CVE-2021-44228**, December 2021, CVSS **10**
+- Every team's first question was "are we affected?" Most answered with a list of every repo that had log4j in it.
+- In this one service: **233 CVEs, 141 unreachable, 13 reachable. Log4Shell is one of the 13.**
+- Transitive example if asked: **logback** CVE-2017-5929 (CVSS 9.8) is reachable through a dependency of a dependency.
+
+**Line:** "Reachability turns 233 tickets into 13, and tells you which one to fix first."
+
+> [!question] ASK (after the fly-out)
+> "When Log4Shell hit, how long did it take your team to answer 'are we affected?'"
+
+> [!question] ASK (after the fix)
 > "Who owns the fix today: security or the dev team?"
 
+> [!warning] Before the call
+> Numbers are from the 9/25 run. **Alerts > checkout-service > Reachable** should show **13, with log4j in it.** The 4-hour heartbeat scans only carry precomputed results. If log4j shows as "direct dependency," the full-application result isn't showing: say the numbers you see, and skip the fly-out.
 ---
 
 ## 5. CLOSE (2 min)
@@ -126,6 +143,12 @@ Recap the three sections. Then:
   Every alert type can be set to block, warn, or ignore individually. Don't give a count.
 - **"Latency?"** (don't volunteer it)
   Decisions are cached, so repeat installs don't wait on us. We'll measure it in the POC.
+- **"Do you need our source code?"**
+  No. Full application reachability runs in your CI, and only the results come to us.
+- **"What about the ones you can't determine?"**
+  We can't prove those either way, so they stay on the list, ranked below the reachable ones.
+- **"Our developers hate PR comments."**
+  Comments only appear when a PR changes dependencies, and you can turn them off.
 - **"Why you?"**
   We found and named Shai Hulud, GlassWorm, axios, and Laravel.
 - **"Ecosystems?"**

@@ -184,11 +184,11 @@ print_commands() {
 # ---------------------------------------------------------------------------
 # Side-screen notes
 # ---------------------------------------------------------------------------
-# notes/firewall.md is what the operator keeps beside the shared window. Its
+# notes/golden-demo.md is what the operator keeps beside the shared window. Its
 # command block sits between BEATS markers and is regenerated from DEMO_BEATS,
 # so the notes can never show a command preflight did not verify. Everything
 # outside the markers is hand-written and survives re-rendering.
-NOTES="${ROOT}/notes/firewall.md"
+NOTES="${ROOT}/notes/golden-demo.md"
 # preflight records the beats that failed here, so reopening the notes later
 # still marks them DO NOT RUN. up.sh clears it: a fresh start is unverified.
 PREFLIGHT_SKIP_FILE="${ROOT}/.preflight-skip"
@@ -233,7 +233,7 @@ PY
 # obsidian:// URI, which lands it in that vault's window. Anything else goes to
 # the Obsidian app directly, with a one-line hint to make the notes folder a vault.
 open_notes() {
-  [ -f "$NOTES" ] || { warn "no notes file at notes/firewall.md"; return 0; }
+  [ -f "$NOTES" ] || { warn "no notes file at notes/golden-demo.md"; return 0; }
   local vault_uri
   vault_uri="$(python3 - "$NOTES" <<'PY'
 import json, os, sys, urllib.parse
