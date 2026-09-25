@@ -105,8 +105,10 @@ resolved org for that reason. Only a rule at `error` blocks:
 When a block beat returns 200, `preflight.sh` reads the org's security policy and names
 the rule and its action, so you get the cause rather than a mystery.
 
-Beat 2 is the headline. `aegularjs` is a typosquat of `angularjs`, and the one-character
-difference does the teaching before you say anything:
+Beat 2 is the headline: confirmed malware whose block reason names a behavior the
+audience can picture. Do not call it a typosquat. Socket carries no `didYouMean`
+alert on it, and the name it resembles (`angularjs`) is not the real AngularJS
+package, which is published as `angular`:
 
 ```
 npm notice Access denied: Your download has been blocked by the Socket Security Policy.
@@ -274,6 +276,7 @@ Ready, not volunteered:
 | `up.sh` | Start, export CA, write `.npmrc`, reset manifest, clear demo cache, wait for real readiness, print the commands |
 | `preflight.sh` | Verify every beat against the live API, diagnose failures against org policy, print the commands |
 | `talk.sh` | Print the talk track |
+| `notes.sh` | Open the side-screen notes (`notes/golden-demo.md`: threat engine, firewall, and SCA) in Obsidian, command block regenerated from `DEMO_BEATS` |
 | `filtering.sh on\|off` | Toggle metadata filtering and recreate the container |
 | `find-packages.sh` | Find confirmed malware still live on npm, to swap a beat |
 | `status.sh` | Container, filtering state, readiness |

@@ -13,3 +13,7 @@ demo/app/package-lock.json
 *.log
 .DS_Store
 .npm-cache/
+
+# Obsidian vault settings, if notes/ is opened as a vault
+.obsidian/
+.preflight-skip
