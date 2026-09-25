@@ -9,10 +9,23 @@
 **Agenda:** threat engine, firewall, SCA. Deliver exactly those three.
 
 > [!question] ASK
-> "What happens today when someone installs a package nobody has vetted?"
+> "Walk me through what happens today when someone on your team pulls in a new package."
+>
+> *Technical room:* "What's sitting between someone typing `npm install` and that package landing on their laptop?"
+>
+> *Short answer?* "Is that on laptops, in CI, or both?"
 
-Use their answer. Tie every section back to it.
+| They say | You say | Lean on |
+|---|---|---|
+| Nothing / not sure | "Let me show you what that looks like at install time." | 1, 2 |
+| Our EDR | "EDR reacts once it's on the machine and the install script has run. We stop the download." | 2 |
+| Artifactory / Nexus | "Does anything check what it pulls, or does it cache whatever's requested?" | 1 (Axios), 2 |
+| Snyk / our SCA | "That runs once it's in a repo, after the install. And it waits on advisories." | 1 (5 hr 22 min) |
+| We pin / cooldown | "Pinning covers what you have, not a new package. We set one cooldown for every ecosystem." | 2, policy |
+| Approval / allowlist | "Does that cover the transitive dependencies too?" | 4 |
+| **We had an incident** | **Stop. "What happened?"** Anchor the demo on it. | all |
 
+Don't correct them. Name the section you'll show because of what they said.
 ---
 
 ## 1. THREAT ENGINE (3 min)
