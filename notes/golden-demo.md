@@ -2,6 +2,10 @@
 
 > [!warning] Every section
 > **Slow down. Say it once.** Ask the question, then **stop talking** until they answer.
+>
+> **ASK FIRST** opens a section: say the bridge, ask, and let the answer set up the screen.
+> **ASK after** comes mid-section, at the point named.
+> **CHECK** comes last: ask it before you switch tabs.
 
 ---
 
@@ -34,10 +38,7 @@ Don't correct them. Name the section you'll show because of what they said.
 3. **Speed:** the AI flags new malware at a **6.3 min median**.
 4. **Accuracy:** researchers confirm it as known malware. Reversed **under 1%** (npm, PyPI).
 5. **Axios** (below)
-6. **Worms:** Shai Hulud hit 2,000+ packages and crossed ecosystems. We caught every new version as it spread.
-
-> [!question] ASK
-> "How does that compare to what you're seeing from your tools today?"
+6. **Worms:** Shai Hulud hit 2,000+ packages and crossed ecosystems. We kept catching new versions as it spread.
 
 ### AXIOS
 - Malicious package: **plain-crypto-js**. It was brand new, with no history.
@@ -48,12 +49,19 @@ Don't correct them. Name the section you'll show because of what they said.
 
 **Line:** "If you rely on an advisory feed, that five hours is your exposure."
 
-> [!question] ASK
+> [!question] ASK after the story
 > "If that axios version hit your CI tomorrow, what would catch it?"
+
+> [!success] CHECK, then move on
+> "How does that compare to what you're seeing from your tools today?"
 
 ---
 
 ## 2. FIREWALL TERMINAL (3 min)
+> [!question] ASK FIRST
+> **Bridge:** "That detection only matters if it stops the install. That's the firewall."
+> "Where do installs happen for you that security can't see today?"
+
 <!-- BEATS:START (generated from DEMO_BEATS by scripts/notes.sh; edits here are overwritten) -->
 ```
 cd ~/Desktop/projects/socket-firewall-workshop/demo/app
@@ -74,34 +82,51 @@ npm ci                           # BLOCKED - malicious transitive dependency
 - Point at three things in the block message: **why** it was blocked, the **threat note**, and the **request ID**.
 - **Line:** "It's network-based, so it covers agents and vibe coders, not just developers."
 
-> [!question] ASK
-> "Where do installs happen for you that security can't see today?"
+> [!success] CHECK, then move on
+> "What challenges would you see rolling something like this out?"
 
 ---
 
 ## 3. DASHBOARD EVENTS (2 min)
+> [!question] ASK FIRST
+> **Bridge:** "Everyone asks how they'd know what people are downloading. This page answers that."
+> "When something gets blocked today, who finds out, and how?"
+>
+> *Already heard it?* Use their words instead: "You mentioned checking CI logs by hand. Here's that in one page."
+
 - Show the block you just triggered. Match its **request ID** to the terminal.
 - **Expand the row.** The Machine ID column is blank because of a bug; the data is in the row details.
 - Events go to your SIEM through **webhooks**.
 
-> [!question] ASK
-> "When something gets blocked today, who finds out, and how?"
-
 ---
 
 ## 4. SCA (5 min)
+> [!question] ASK FIRST (decides how deep to go)
+> **Bridge:** "The firewall stops what comes in. SCA covers what's already in your repos."
+> "Is install-time the bigger worry for you, or the CVEs already in your repos?"
+
 **Repo:** `checkout-service` (Java). **Story:** Log4Shell.
 
 1. **Alerts page, org-wide:** "Every repo, one list." Skip individual scans.
    - *Optional, 15 sec:* malware shows up here too (`n8n-nodes-sysdiag2` in internal-tools). "Same threat engine as the firewall."
 2. **Filter to checkout-service: 233 CVEs.** "This is what your engineers get handed today."
-3. **Precomputed reachability** comes with the install. It rules out **92**, but it can't judge the **58 direct dependencies**, because it can't see how your own code calls them.
-4. **Full application reachability** runs in your CI. **141 unreachable. 13 reachable.**
-5. **Log4Shell is in the 13.** Open the fly-out and show the call path from your code into log4j.
-6. **Fix:** the alert's own command, `socket fix`. Mention Patches as a concept only.
 
-> [!question] ASK (after the 233)
+> [!question] ASK after the 233
 > "How are you deciding which of these to fix today?"
+
+3. **Bridge:** "You've got every CVE Snyk shows you. The question is which ones matter."
+4. **Precomputed reachability** comes with the install. It rules out **92**, but it can't judge the **58 direct dependencies**, because it can't see how your own code calls them.
+5. **Full application reachability** runs in your CI. **141 unreachable. 13 reachable.** Say the counts, not a percentage.
+6. **Log4Shell is in the 13.** Open the alert. Show the dependency tree and the call path from your code into log4j.
+
+> [!question] ASK after the call path
+> "When Log4Shell hit, how long did it take your team to answer 'are we affected?'"
+
+7. **Bridge:** "Now that we know what's reachable, here's how it gets fixed."
+8. **Remediation tab:** the alert's own `socket fix` command. Mention Patches as a concept only.
+
+> [!success] CHECK, then move on
+> "Who owns the fix today: security or the dev team?"
 
 ### LOG4SHELL
 - **CVE-2021-44228**, December 2021, CVSS **10**
@@ -111,14 +136,8 @@ npm ci                           # BLOCKED - malicious transitive dependency
 
 **Line:** "Reachability turns 233 tickets into 13, and tells you which one to fix first."
 
-> [!question] ASK (after the fly-out)
-> "When Log4Shell hit, how long did it take your team to answer 'are we affected?'"
-
-> [!question] ASK (after the fix)
-> "Who owns the fix today: security or the dev team?"
-
 > [!warning] Before the call
-> Numbers are from the 9/25 run. **Alerts > checkout-service > Reachable** should show **13, with log4j in it.** The 4-hour heartbeat scans only carry precomputed results. If log4j shows as "direct dependency," the full-application result isn't showing: say the numbers you see, and skip the fly-out.
+> Numbers are from the 9/25 run. **Alerts > checkout-service > Reachable** should show **13, with log4j in it.** The 4-hour heartbeat scans only carry precomputed results. If log4j shows as "direct dependency," the full-application result isn't showing: say the numbers you see, and skip the call path.
 ---
 
 ## 5. CLOSE (2 min)
@@ -137,6 +156,8 @@ Recap the three sections. Then:
   Some customers block on AI-detected malware because they want protection as early as possible. Others block only on known malware and add a cooldown to cover the gap.
 - **"Why not our EDR?"**
   EDR sees it after it's on the machine. We stop the download.
+- **"Our cooldown already covers us."**
+  A cooldown protects you if someone reports a package inside the window. The package I just blocked is three years old, so your cooldown would let it in. Most confirmed npm malware is never taken down (about 60% as of August). And after the first report of a worm, lists stop updating.
 - **"Isn't this just OSV?"**
   OSV mostly updates when a registry takes a package down. Small packages often never get taken down.
 - **"How many alert types?"**
